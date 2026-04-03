@@ -1,5 +1,5 @@
 # generated: 2026-04-02
-# last_updated: 2026-04-02
+# last_updated: 2026-04-03
 # project: donezo
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,8 +35,9 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 
 generated: 2026-04-02
-last_updated: 2026-04-02
+last_updated: 2026-04-03
 project: donezo
+
 project_key: NOKEY
 tracking_system: file-system
 story_location: _bmad-output/implementation-artifacts
@@ -55,27 +56,27 @@ development_status:
   # ─────────────────────────────────────────
   # Epic 2: Core Task Management
   # ─────────────────────────────────────────
-  epic-2: backlog
-  2-1-zustand-store-and-persistence: backlog
-  2-2-task-input-component: backlog
-  2-3-task-list-and-task-item-components: backlog
-  2-4-complete-and-delete-task-interactions: backlog
+  epic-2: done
+  2-1-zustand-store-and-persistence: done
+  2-2-task-input-component: done
+  2-3-task-list-and-task-item-components: done
+  2-4-complete-and-delete-task-interactions: done
   epic-2-retrospective: optional
 
   # ─────────────────────────────────────────
   # Epic 3: Resilient Application States
   # ─────────────────────────────────────────
-  epic-3: backlog
-  3-1-empty-state: backlog
-  3-2-loading-state: backlog
-  3-3-error-boundary-and-error-state: backlog
+  epic-3: done
+  3-1-empty-state: done
+  3-2-loading-state: done
+  3-3-error-boundary-and-error-state: done
   epic-3-retrospective: optional
 
   # ─────────────────────────────────────────
   # Epic 4: Accessible & Responsive Experience
   # ─────────────────────────────────────────
-  epic-4: backlog
-  4-1-responsive-layout: backlog
-  4-2-keyboard-navigation-and-accessibility: backlog
-  4-3-architecture-extensibility-verification: backlog
+  epic-4: done
+  4-1-responsive-layout: done
+  4-2-keyboard-navigation-and-accessibility: done
+  4-3-architecture-extensibility-verification: done
   epic-4-retrospective: optional

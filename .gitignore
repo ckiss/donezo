@@ -18,6 +18,9 @@ test-results
 playwright-report
 blob-report
 
+# Project planning docs (local only)
+initial_docs
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
