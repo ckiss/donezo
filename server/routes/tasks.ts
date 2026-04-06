@@ -42,6 +42,12 @@ const deleteTaskSchema = {
 }
 
 export async function taskRoutes(app: FastifyInstance) {
+  app.addHook('onSend', async (_request, reply) => {
+    if (!reply.hasHeader('cache-control')) {
+      reply.header('Cache-Control', 'no-store')
+    }
+  })
+
   // GET /api/tasks — list all tasks ordered by createdAt descending
   app.get('/api/tasks', async () => {
     return prisma.task.findMany({ orderBy: { createdAt: 'desc' } })

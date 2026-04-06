@@ -2,12 +2,14 @@
 // Tests use app.inject() without starting a real server.
 import Fastify from 'fastify'
 import cors from '@fastify/cors'
+import compress from '@fastify/compress'
 import { healthRoutes } from './routes/health.ts'
 import { taskRoutes } from './routes/tasks.ts'
 
 export async function buildApp() {
   const app = Fastify({ logger: false })
 
+  await app.register(compress)
   await app.register(cors)
   await app.register(healthRoutes)
   await app.register(taskRoutes)

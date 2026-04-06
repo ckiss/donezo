@@ -9,6 +9,11 @@ if (process.env.NODE_ENV === 'production') {
   await app.register(fastifyStatic.default, {
     root: resolve(import.meta.dirname, '../dist'),
     prefix: '/',
+    setHeaders(res, filepath) {
+      if (filepath.includes('/assets/')) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+      }
+    },
   })
 
   // SPA fallback — serve index.html for non-API routes
