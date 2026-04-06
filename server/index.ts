@@ -9,9 +9,12 @@ if (process.env.NODE_ENV === 'production') {
   await app.register(fastifyStatic.default, {
     root: resolve(import.meta.dirname, '../dist'),
     prefix: '/',
+    cacheControl: false,
     setHeaders(res, filepath) {
       if (filepath.includes('/assets/')) {
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+      } else {
+        res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate')
       }
     },
   })
