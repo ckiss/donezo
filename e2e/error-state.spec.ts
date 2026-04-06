@@ -1,45 +1,44 @@
 import { test, expect } from '@playwright/test'
+import { clearTasks } from './helpers'
 
 test.describe('Error state', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    await page.evaluate(() => localStorage.clear())
-    await page.goto('/')
+    await clearTasks(page)
+    await page.reload()
   })
 
-  test('ErrorBoundary catches render errors and shows fallback', async ({ page }) => {
-    // Inject corrupt localStorage data that will cause a render error (tasks.map on a string)
-    await page.evaluate(() => {
-      localStorage.setItem('donezo_tasks', JSON.stringify({
-        state: { tasks: 'not-an-array' },
-        version: 0,
-      }))
-    })
-    await page.reload()
+  test('shows error message when API is unreachable and preserves input', async ({ page }) => {
+    // Block all API requests to simulate network failure
+    await page.route('**/api/tasks', (route) => route.abort())
 
-    // ErrorBoundary should catch the render error and show fallback
-    await expect(page.getByText('Something went wrong')).toBeVisible()
-    // TaskInput should remain visible and functional outside the boundary
+    // Try to add a task — should fail with error
+    await page.getByPlaceholder('Add a task...').fill('Test task')
+    await page.getByPlaceholder('Add a task...').press('Enter')
+
+    // Error message should appear
+    await expect(page.getByText('Unable to reach server')).toBeVisible()
+
+    // Input should still be functional
     await expect(page.getByPlaceholder('Add a task...')).toBeVisible()
   })
 
-  test('TaskInput remains functional while error boundary is active', async ({ page }) => {
-    // Inject corrupt data to trigger error boundary
-    await page.evaluate(() => {
-      localStorage.setItem('donezo_tasks', JSON.stringify({
-        state: { tasks: 'not-an-array' },
-        version: 0,
-      }))
-    })
-    await page.reload()
+  test('error clears on next successful action', async ({ page }) => {
+    // Block API to trigger error
+    await page.route('**/api/tasks', (route) => route.abort())
 
-    // Verify error boundary is showing
-    await expect(page.getByText('Something went wrong')).toBeVisible()
-
-    // TaskInput should still work — type and submit a task
     await page.getByPlaceholder('Add a task...').fill('Test task')
     await page.getByPlaceholder('Add a task...').press('Enter')
-    // Input should clear after submit (store addTask still works)
-    await expect(page.getByPlaceholder('Add a task...')).toHaveValue('')
+    await expect(page.getByText('Unable to reach server')).toBeVisible()
+
+    // Unblock API
+    await page.unroute('**/api/tasks')
+
+    // Successful action should clear error
+    await page.getByPlaceholder('Add a task...').fill('Another task')
+    await page.getByPlaceholder('Add a task...').press('Enter')
+
+    await expect(page.getByText('Another task')).toBeVisible()
+    await expect(page.getByText('Unable to reach server')).not.toBeVisible()
   })
 })

@@ -1,10 +1,11 @@
 import { test, expect } from '@playwright/test'
+import { clearTasks } from './helpers'
 
 test.describe('Complete task', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    await page.evaluate(() => localStorage.clear())
-    await page.goto('/')
+    await clearTasks(page)
+    await page.reload()
   })
 
   test('marks task as completed with visual indicator within 300ms', async ({ page }) => {
