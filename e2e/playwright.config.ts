@@ -1,14 +1,19 @@
 import { defineConfig, devices } from '@playwright/test'
 
+// Local dev: Vite (5173) proxies /api → Fastify (3000). CI matches production: one Fastify
+// process serves dist/ and /api on 3000, so preview alone would leave nothing on 3000.
+const isCI = !!process.env.CI
+const baseURL = isCI ? 'http://localhost:3000' : 'http://localhost:5173'
+
 export default defineConfig({
   testDir: '.',
   fullyParallel: true,
-  forbidOnly: !!process.env.CI,
-  retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  forbidOnly: isCI,
+  retries: isCI ? 2 : 0,
+  workers: isCI ? 1 : undefined,
   reporter: 'html',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL,
     trace: 'on-first-retry',
   },
   projects: [
@@ -17,9 +22,9 @@ export default defineConfig({
     { name: 'webkit', use: { ...devices['Desktop Safari'] } },
   ],
   webServer: {
-    command: process.env.CI ? 'npm run build && npm run preview -- --port 5173' : 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    command: isCI ? 'npm run build && npm run start' : 'npm run dev',
+    url: baseURL,
+    reuseExistingServer: !isCI,
     timeout: 120_000,
   },
 })
