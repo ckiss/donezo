@@ -7,10 +7,10 @@ const baseURL = isCI ? 'http://localhost:3000' : 'http://localhost:5173'
 
 export default defineConfig({
   testDir: '.',
-  fullyParallel: true,
+  fullyParallel: false,
   forbidOnly: isCI,
   retries: isCI ? 2 : 0,
-  workers: isCI ? 1 : undefined,
+  workers: 1, // shared database — must run serially
   reporter: 'html',
   use: {
     baseURL,

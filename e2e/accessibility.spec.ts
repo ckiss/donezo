@@ -1,11 +1,12 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
+import { clearTasks } from './helpers'
 
 test.describe('Accessibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    await page.evaluate(() => localStorage.clear())
-    await page.goto('/')
+    await clearTasks(page)
+    await page.reload()
   })
 
   test('empty state has zero WCAG 2.1 AA violations', async ({ page }) => {
@@ -29,7 +30,10 @@ test.describe('Accessibility', () => {
   test('completed task has zero WCAG 2.1 AA violations', async ({ page }) => {
     await page.getByPlaceholder('Add a task...').fill('Buy milk')
     await page.getByPlaceholder('Add a task...').press('Enter')
-    await page.getByRole('checkbox', { name: /mark "Buy milk"/i }).check()
+    await expect(page.getByText('Buy milk')).toBeVisible()
+
+    await page.getByRole('checkbox', { name: /mark "Buy milk"/i }).click()
+    await expect(page.getByRole('checkbox', { name: /mark "Buy milk"/i })).toBeChecked()
 
     const results = await new AxeBuilder({ page })
       .withTags(['wcag2a', 'wcag2aa'])
@@ -41,8 +45,8 @@ test.describe('Accessibility', () => {
 test.describe('Keyboard navigation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    await page.evaluate(() => localStorage.clear())
-    await page.goto('/')
+    await clearTasks(page)
+    await page.reload()
   })
 
   // WebKit on macOS does not Tab to buttons by default (OS-level preference)
