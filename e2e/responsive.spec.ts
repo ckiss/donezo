@@ -1,13 +1,12 @@
 import { test, expect } from '@playwright/test'
-import { clearTasks } from './helpers'
 
 test.describe('Responsive layout', () => {
   test('mobile viewport (375px) — controls visible and no overflow', async ({ browser }) => {
     const context = await browser.newContext({ viewport: { width: 375, height: 812 } })
     const page = await context.newPage()
     await page.goto('/')
-    await clearTasks(page)
-    await page.reload()
+    await page.evaluate(() => localStorage.clear())
+    await page.goto('/')
 
     // Input and button visible
     await expect(page.getByPlaceholder('Add a task...')).toBeVisible()
@@ -35,8 +34,8 @@ test.describe('Responsive layout', () => {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } })
     const page = await context.newPage()
     await page.goto('/')
-    await clearTasks(page)
-    await page.reload()
+    await page.evaluate(() => localStorage.clear())
+    await page.goto('/')
 
     await expect(page.getByPlaceholder('Add a task...')).toBeVisible()
 

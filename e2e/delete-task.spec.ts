@@ -1,11 +1,10 @@
 import { test, expect } from '@playwright/test'
-import { clearTasks } from './helpers'
 
 test.describe('Delete task', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    await clearTasks(page)
-    await page.reload()
+    await page.evaluate(() => localStorage.clear())
+    await page.goto('/')
   })
 
   test('removes task from the list within 300ms', async ({ page }) => {

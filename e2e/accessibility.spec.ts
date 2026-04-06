@@ -1,12 +1,11 @@
 import { test, expect } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
-import { clearTasks } from './helpers'
 
 test.describe('Accessibility', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    await clearTasks(page)
-    await page.reload()
+    await page.evaluate(() => localStorage.clear())
+    await page.goto('/')
   })
 
   test('empty state has zero WCAG 2.1 AA violations', async ({ page }) => {
@@ -42,8 +41,8 @@ test.describe('Accessibility', () => {
 test.describe('Keyboard navigation', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    await clearTasks(page)
-    await page.reload()
+    await page.evaluate(() => localStorage.clear())
+    await page.goto('/')
   })
 
   // WebKit on macOS does not Tab to buttons by default (OS-level preference)

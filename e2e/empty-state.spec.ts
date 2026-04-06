@@ -1,11 +1,10 @@
 import { test, expect } from '@playwright/test'
-import { clearTasks } from './helpers'
 
 test.describe('Empty state', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
-    await clearTasks(page)
-    await page.reload()
+    await page.evaluate(() => localStorage.clear())
+    await page.goto('/')
   })
 
   test('shows empty state when no tasks exist', async ({ page }) => {
