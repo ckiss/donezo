@@ -1,38 +1,30 @@
-import { render, screen, act } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import { describe, it, expect, beforeEach } from 'vitest'
 import { TaskList } from './TaskList'
 import { useTaskStore } from '../store/useTaskStore'
 
 beforeEach(() => {
-  useTaskStore.setState({ tasks: [], isHydrated: true, hasError: false })
-  localStorage.clear()
+  useTaskStore.setState({ tasks: [], isLoading: false, error: null })
 })
 
 describe('TaskList', () => {
-  it('renders loading indicator when store is not hydrated', () => {
-    useTaskStore.setState({ tasks: [], isHydrated: false })
+  it('renders loading indicator when isLoading is true', () => {
+    useTaskStore.setState({ isLoading: true })
     render(<TaskList />)
     expect(screen.getByText('Loading...')).toBeInTheDocument()
     expect(screen.queryByText('No tasks yet')).toBeNull()
-    expect(screen.queryByRole('list')).toBeNull()
   })
 
-  it('transitions from loading to empty state when hydration completes', () => {
-    useTaskStore.setState({ tasks: [], isHydrated: false })
+  it('renders empty state when no tasks and not loading', () => {
     render(<TaskList />)
-    expect(screen.getByText('Loading...')).toBeInTheDocument()
-
-    // Simulate hydration completing
-    act(() => {
-      useTaskStore.setState({ isHydrated: true })
-    })
-    expect(screen.queryByText('Loading...')).toBeNull()
     expect(screen.getByText('No tasks yet')).toBeInTheDocument()
+    expect(screen.getByText('Add your first task above')).toBeInTheDocument()
+    expect(screen.queryByRole('list')).toBeNull()
   })
 
   it('renders a single task with all controls', () => {
     useTaskStore.setState({
-      tasks: [{ id: '1', text: 'Buy milk', completed: false, createdAt: Date.now() }],
+      tasks: [{ id: '1', text: 'Buy milk', completed: false, createdAt: new Date().toISOString() }],
     })
     render(<TaskList />)
     expect(screen.getByText('Buy milk')).toBeInTheDocument()
@@ -43,8 +35,8 @@ describe('TaskList', () => {
   it('renders multiple tasks', () => {
     useTaskStore.setState({
       tasks: [
-        { id: '1', text: 'Buy milk', completed: false, createdAt: Date.now() },
-        { id: '2', text: 'Walk dog', completed: false, createdAt: Date.now() },
+        { id: '1', text: 'Buy milk', completed: false, createdAt: new Date().toISOString() },
+        { id: '2', text: 'Walk dog', completed: false, createdAt: new Date().toISOString() },
       ],
     })
     render(<TaskList />)
@@ -52,16 +44,9 @@ describe('TaskList', () => {
     expect(screen.getByText('Walk dog')).toBeInTheDocument()
   })
 
-  it('renders empty state when store has no tasks', () => {
-    render(<TaskList />)
-    expect(screen.getByText('No tasks yet')).toBeInTheDocument()
-    expect(screen.getByText('Add your first task above')).toBeInTheDocument()
-    expect(screen.queryByRole('list')).toBeNull()
-  })
-
   it('shows checkbox checked and line-through for completed task', () => {
     useTaskStore.setState({
-      tasks: [{ id: '1', text: 'Done task', completed: true, createdAt: Date.now() }],
+      tasks: [{ id: '1', text: 'Done task', completed: true, createdAt: new Date().toISOString() }],
     })
     render(<TaskList />)
     const checkbox = screen.getByRole('checkbox', { name: /mark "Done task"/i })
@@ -72,7 +57,7 @@ describe('TaskList', () => {
 
   it('shows checkbox unchecked for incomplete task', () => {
     useTaskStore.setState({
-      tasks: [{ id: '1', text: 'Open task', completed: false, createdAt: Date.now() }],
+      tasks: [{ id: '1', text: 'Open task', completed: false, createdAt: new Date().toISOString() }],
     })
     render(<TaskList />)
     const checkbox = screen.getByRole('checkbox', { name: /mark "Open task"/i })
@@ -82,33 +67,31 @@ describe('TaskList', () => {
   })
 
   it('displays createdAt as human-readable timestamp', () => {
-    const ts = new Date('2026-04-02T10:00:00').getTime()
+    const iso = '2026-04-02T10:00:00.000Z'
     useTaskStore.setState({
-      tasks: [{ id: '1', text: 'Timed task', completed: false, createdAt: ts }],
+      tasks: [{ id: '1', text: 'Timed task', completed: false, createdAt: iso }],
     })
     render(<TaskList />)
     expect(screen.getByText('Timed task')).toBeInTheDocument()
-    // Verify a timestamp element exists that is not "Invalid Date"
-    const formatted = new Date(ts).toLocaleString()
+    const formatted = new Date(iso).toLocaleString()
     expect(formatted).not.toBe('Invalid Date')
     expect(screen.getAllByText(formatted)).toHaveLength(2)
   })
 
-  it('shows storage error banner when hasError is true', () => {
+  it('shows error message when error is set', () => {
     useTaskStore.setState({
-      tasks: [{ id: '1', text: 'Buy milk', completed: false, createdAt: Date.now() }],
-      hasError: true,
+      tasks: [{ id: '1', text: 'Buy milk', completed: false, createdAt: new Date().toISOString() }],
+      error: 'Unable to reach server. Please try again.',
     })
     render(<TaskList />)
-    expect(screen.getByText(/storage error/i)).toBeInTheDocument()
+    expect(screen.getByText('Unable to reach server. Please try again.')).toBeInTheDocument()
     expect(screen.getByText('Buy milk')).toBeInTheDocument() // tasks preserved
-    expect(screen.getByText('Dismiss')).toBeInTheDocument()
   })
 
-  it('shows storage error banner with empty state', () => {
-    useTaskStore.setState({ tasks: [], hasError: true })
+  it('shows error with empty task list', () => {
+    useTaskStore.setState({ tasks: [], error: 'Unable to reach server. Please try again.' })
     render(<TaskList />)
-    expect(screen.getByText(/storage error/i)).toBeInTheDocument()
+    expect(screen.getByText('Unable to reach server. Please try again.')).toBeInTheDocument()
     expect(screen.getByText('No tasks yet')).toBeInTheDocument()
   })
 })

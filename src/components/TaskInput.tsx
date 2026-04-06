@@ -7,7 +7,7 @@ export function TaskInput() {
   const inputRef = useRef<HTMLInputElement>(null)
   const addTask = useTaskStore((s) => s.addTask)
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     const trimmed = text.trim()
     if (!trimmed) {
@@ -15,7 +15,7 @@ export function TaskInput() {
       return
     }
     setError('')
-    addTask(trimmed)
+    await addTask(trimmed)
     setText('')
     inputRef.current?.focus()
   }

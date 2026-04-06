@@ -1,0 +1,19 @@
+// Prisma schema — source of truth for database structure.
+// No userId column in v1 — identity-agnostic by design (FR-10).
+// Adding auth in v2 requires adding a column + foreign key, not restructuring.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Task {
+  id        String   @id @default(uuid())
+  text      String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

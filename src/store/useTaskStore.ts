@@ -1,93 +1,99 @@
 import { create } from 'zustand'
-import { persist, createJSONStorage } from 'zustand/middleware'
 import type { Task } from '../types'
-import { STORAGE_KEY } from '../constants'
 
 interface TaskStore {
   tasks: Task[]
-  isHydrated: boolean
-  hasError: boolean
-  addTask: (text: string) => void
-  toggleTask: (id: string) => void
-  deleteTask: (id: string) => void
-  clearError: () => void
-}
-
-// Safe localStorage wrapper that catches write errors (e.g., QuotaExceededError)
-const safeLocalStorage = {
-  getItem: (name: string) => localStorage.getItem(name),
-  setItem: (name: string, value: string) => {
-    try {
-      localStorage.setItem(name, value)
-    } catch {
-      useTaskStore.setState({ hasError: true })
-    }
-  },
-  removeItem: (name: string) => localStorage.removeItem(name),
+  isLoading: boolean
+  error: string | null
+  fetchTasks: () => Promise<void>
+  addTask: (text: string) => Promise<void>
+  toggleTask: (id: string) => Promise<void>
+  deleteTask: (id: string) => Promise<void>
 }
 
 // All task state lives here. No component should hold task state locally.
-// To support multi-user in v2: add userId to addTask and filter by user context.
-export const useTaskStore = create<TaskStore>()(
-  persist(
-    (set) => ({
-      tasks: [],
-      isHydrated: false,
-      hasError: false,
+// Store actions are async — each calls the API via fetch with relative URLs.
+// Pessimistic updates: await API response before updating local state.
+// To support multi-user in v2: add userId to actions and filter by user context.
+export const useTaskStore = create<TaskStore>()((set, get) => ({
+  tasks: [],
+  isLoading: false,
+  error: null,
 
-      // Guard: rejects empty/whitespace text (FR-01, AC-2)
-      addTask: (text: string) => {
-        const trimmed = text.trim()
-        if (!trimmed) return
-        set((state) => ({
-          tasks: [
-            ...state.tasks,
-            {
-              id: crypto.randomUUID(),
-              text: trimmed,
-              completed: false,
-              createdAt: Date.now(),
-            },
-          ],
-        }))
-      },
-
-      // Immutable toggle — spreads task and flips completed (FR-03)
-      toggleTask: (id: string) => {
-        set((state) => ({
-          tasks: state.tasks.map((task) =>
-            task.id === id ? { ...task, completed: !task.completed } : task
-          ),
-        }))
-      },
-
-      // Immutable delete — filters out matching id (FR-04)
-      deleteTask: (id: string) => {
-        set((state) => ({
-          tasks: state.tasks.filter((task) => task.id !== id),
-        }))
-      },
-
-      clearError: () => set({ hasError: false }),
-    }),
-    {
-      name: STORAGE_KEY,
-      storage: createJSONStorage(() => safeLocalStorage),
-      partialize: (state) => ({ tasks: state.tasks }), // only persist tasks — exclude isHydrated, hasError
-      onRehydrateStorage: () => (_state, error) => {
-        if (error) {
-          useTaskStore.setState({ hasError: true, isHydrated: true })
-        }
-      },
+  // Fetch all tasks from API — used on app mount
+  fetchTasks: async () => {
+    set({ isLoading: true, error: null })
+    try {
+      const res = await fetch('/api/tasks')
+      if (!res.ok) throw new Error('Failed to fetch tasks')
+      const tasks: Task[] = await res.json()
+      set({ tasks, isLoading: false })
+    } catch {
+      set({ error: 'Unable to reach server. Please try again.', isLoading: false })
     }
-  )
-)
+  },
 
-// Set isHydrated after persist middleware finishes rehydration from localStorage
-if (useTaskStore.persist.hasHydrated()) {
-  useTaskStore.setState({ isHydrated: true })
-} else {
-  useTaskStore.persist.onFinishHydration(() => {
-    useTaskStore.setState({ isHydrated: true })
-  })
-}
+  // Create a task — client trims + rejects empty, then calls POST
+  addTask: async (text: string) => {
+    const trimmed = text.trim()
+    if (!trimmed) return
+    set({ error: null })
+    try {
+      const res = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: trimmed }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        set({ error: err.message ?? 'Failed to add task' })
+        return
+      }
+      const task: Task = await res.json()
+      set((state) => ({ tasks: [...state.tasks, task] }))
+    } catch {
+      set({ error: 'Unable to reach server. Please try again.' })
+    }
+  },
+
+  // Toggle completion — sends desired state, replaces with API response
+  toggleTask: async (id: string) => {
+    const current = get().tasks.find((t) => t.id === id)
+    if (!current) return
+    set({ error: null })
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ completed: !current.completed }),
+      })
+      if (!res.ok) {
+        const err = await res.json()
+        set({ error: err.message ?? 'Failed to update task' })
+        return
+      }
+      const updated: Task = await res.json()
+      set((state) => ({
+        tasks: state.tasks.map((t) => (t.id === id ? updated : t)),
+      }))
+    } catch {
+      set({ error: 'Unable to reach server. Please try again.' })
+    }
+  },
+
+  // Delete task — removes from local state after 204 confirmed
+  deleteTask: async (id: string) => {
+    set({ error: null })
+    try {
+      const res = await fetch(`/api/tasks/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const err = await res.json()
+        set({ error: err.message ?? 'Failed to delete task' })
+        return
+      }
+      set((state) => ({ tasks: state.tasks.filter((t) => t.id !== id) }))
+    } catch {
+      set({ error: 'Unable to reach server. Please try again.' })
+    }
+  },
+}))

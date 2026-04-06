@@ -31,3 +31,9 @@ initial_docs
 *.njsproj
 *.sln
 *.sw?
+
+# Environment files
+.env
+
+# Prisma generated client
+/generated/prisma

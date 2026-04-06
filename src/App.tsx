@@ -1,9 +1,17 @@
+import { useEffect } from 'react'
 import './App.css'
 import { TaskInput } from './components/TaskInput'
 import { TaskList } from './components/TaskList'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { useTaskStore } from './store/useTaskStore'
 
 function App() {
+  const fetchTasks = useTaskStore((s) => s.fetchTasks)
+
+  useEffect(() => {
+    fetchTasks()
+  }, [fetchTasks])
+
   return (
     <main className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-2xl p-4">

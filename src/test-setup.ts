@@ -22,8 +22,10 @@ Object.defineProperty(globalThis, 'localStorage', {
   writable: true,
   configurable: true,
 })
-Object.defineProperty(window, 'localStorage', {
-  value: inMemoryStorage,
-  writable: true,
-  configurable: true,
-})
+if (typeof window !== 'undefined') {
+  Object.defineProperty(window, 'localStorage', {
+    value: inMemoryStorage,
+    writable: true,
+    configurable: true,
+  })
+}

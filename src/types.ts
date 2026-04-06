@@ -2,8 +2,8 @@
 // To support multi-user in v2: add `userId: string` field and user context to the store.
 // No structural redesign needed — only additive changes required (FR-10).
 export interface Task {
-  id: string        // crypto.randomUUID() — never sequential integers
-  text: string      // trimmed before storage; never empty string
+  id: string
+  text: string
   completed: boolean
-  createdAt: number // milliseconds since epoch — Date.now()
+  createdAt: string // ISO 8601 from API (Fastify JSON serializes Date → string)
 }

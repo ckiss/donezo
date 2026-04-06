@@ -9,12 +9,14 @@ inputDocuments:
   - 'initial_docs/initial_prd.md'
   - '_bmad-output/planning-artifacts/initial_prd-validation-report.md'
 stepsCompleted: ['step-e-01-discovery', 'step-e-02-review', 'step-e-03-edit']
-lastEdited: '2026-04-01'
+lastEdited: '2026-04-06'
 editHistory:
   - date: '2026-04-01'
     changes: 'Full conversion from prose to BMAD standard format. Added structured sections, SMART success criteria, user journey flows, numbered FRs with test criteria, measurable NFRs. Removed implementation leakage.'
   - date: '2026-04-01'
     changes: 'Validation fixes: rewrote FR-10 as capability (removed implementation leakage); added business objective to Executive Summary; added p95 to NFR-01; defined error recovery in NFR-03; added structural metric to NFR-04; added browser matrix to NFR-02; added NFR-06 accessibility (WCAG 2.1 AA).'
+  - date: '2026-04-06'
+    changes: 'Added backend API and database requirements: FR-11 through FR-14 (API CRUD, input validation, error responses, database persistence); NFR-07 through NFR-09 (API performance, testability, data integrity); updated Product Scope with REST API, database, and validation in-scope items; updated Executive Summary with client-server architecture and database backing; added API integration test success criterion.'
 ---
 
 # Product Requirements Document — Donezo
@@ -23,13 +25,13 @@ editHistory:
 
 **Product:** Donezo — a single-user task management web application.
 
-**Vision:** Enable individuals to capture, track, and complete personal tasks through a minimal, reliable interface requiring no onboarding.
+**Vision:** Enable individuals to capture, track, and complete personal tasks through a minimal, reliable client-server interface requiring no onboarding.
 
 **Target Users:** Individual users managing personal tasks on desktop or mobile — no sign-in, no collaboration.
 
 **Differentiator:** Deliberately minimal scope — a complete, polished core task experience with zero unnecessary complexity.
 
-**Business Objective:** Architected to support future multi-user expansion (authentication, collaboration) without requiring redesign of core task features.
+**Business Objective:** Backed by a REST API and database, architected to support future multi-user expansion (authentication, collaboration) without requiring redesign of core task features.
 
 ---
 
@@ -40,6 +42,7 @@ editHistory:
 - All UI state transitions (add, complete, delete) reflect within 300ms under normal conditions
 - Application renders correctly on desktop (1024px+) and mobile (375px+) viewports
 - Empty, loading, and error states display appropriately across all task operations
+- All API endpoints return correct responses for valid and invalid inputs as verified by integration tests
 
 ---
 
@@ -55,6 +58,9 @@ editHistory:
 - Persist todos across browser sessions
 - Responsive layout for desktop and mobile
 - Empty, loading, and error state handling
+- REST API providing CRUD operations for all task data
+- Database-backed persistent storage
+- Server-side input validation and error responses
 
 **Out of scope (future consideration):**
 - User accounts and authentication
@@ -63,6 +69,8 @@ editHistory:
 - Due dates and deadlines
 - Push or email notifications
 - Task categories or tags
+- GraphQL or WebSocket APIs
+- Database migrations tooling or admin interface
 
 ---
 
@@ -122,6 +130,18 @@ editHistory:
 **FR-10:** The system supports adding user authentication and multi-user access in a future release without requiring redesign of core task features.
 - Test: Architecture review confirms task storage and retrieval logic is user-identity-agnostic and can accept an auth layer without structural changes
 
+**FR-11:** The API accepts and returns task data in a structured format for all CRUD operations: create, read (list), update (toggle completion), and delete.
+- Test: Each operation returns correct status codes (201 created, 200 success, 404 not found, 400 invalid input)
+
+**FR-12:** The API validates task input: rejects empty or whitespace-only descriptions and enforces a maximum description length.
+- Test: Submit empty string → 400 response with validation message; submit valid string → 201 response
+
+**FR-13:** The API returns structured error responses including an error type and human-readable message for all failure cases.
+- Test: Trigger validation error, not-found, and server error → each returns consistent error response structure
+
+**FR-14:** All task data persists in a database; no task data is lost due to application restart or redeployment.
+- Test: Create tasks → restart application → GET returns all previously created tasks
+
 ---
 
 ## Non-Functional Requirements
@@ -137,3 +157,9 @@ editHistory:
 **NFR-05 — Deployability:** Application deploys to a standard hosting environment with a documented setup process of 5 steps or fewer.
 
 **NFR-06 — Accessibility:** All interactive controls are keyboard navigable; color contrast meets WCAG 2.1 AA minimum (4.5:1 for normal text).
+
+**NFR-07 — API Performance:** API endpoints respond within 200ms for the 95th percentile under normal load conditions.
+
+**NFR-08 — Testability:** All API endpoints are integration-testable in isolation from the frontend; API contracts are verifiable via automated test suite.
+
+**NFR-09 — Data Integrity:** Database enforces data constraints (non-null description, valid timestamps); no orphaned or corrupted records result from normal CRUD operations.

@@ -3,11 +3,10 @@ import { TaskItem } from './TaskItem'
 
 export function TaskList() {
   const tasks = useTaskStore((s) => s.tasks)
-  const isHydrated = useTaskStore((s) => s.isHydrated)
-  const hasError = useTaskStore((s) => s.hasError)
-  const clearError = useTaskStore((s) => s.clearError)
+  const isLoading = useTaskStore((s) => s.isLoading)
+  const error = useTaskStore((s) => s.error)
 
-  if (!isHydrated) {
+  if (isLoading) {
     return (
       <div className="rounded-lg border border-gray-200 bg-white p-8 text-center">
         <p className="text-sm text-gray-500">Loading...</p>
@@ -17,15 +16,9 @@ export function TaskList() {
 
   return (
     <>
-      {hasError && (
-        <div role="alert" className="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-center">
-          <p className="text-sm text-amber-800">Changes may not be saved — storage error occurred</p>
-          <button
-            onClick={clearError}
-            className="mt-2 text-xs text-amber-600 underline hover:text-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-1 rounded"
-          >
-            Dismiss
-          </button>
+      {error && (
+        <div role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-center">
+          <p className="text-sm text-red-800">{error}</p>
         </div>
       )}
       {tasks.length === 0 ? (

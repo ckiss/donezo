@@ -1,275 +1,193 @@
 # Story 1.1: Project Scaffold & Core Configuration
 
-Status: done
+Status: review
 
 ## Story
 
 As a developer,
-I want the project scaffolded with all dependencies installed and core configuration files in place,
+I want the project scaffolded with all frontend and backend dependencies installed and core configuration in place,
 so that the team has a clean, consistent starting point to build from.
 
 ## Acceptance Criteria
 
-1. `npm run dev` starts a Vite dev server on localhost:5173 with no errors (after running from a clean working directory using the scaffold and install commands below)
-2. `src/types.ts` exists with the canonical `Task` interface (`id: string`, `text: string`, `completed: boolean`, `createdAt: number`)
-3. `src/constants.ts` exists with `export const STORAGE_KEY = 'donezo_tasks'`
-4. `vite.config.ts` has `base: '/'` and the `@tailwindcss/vite` plugin configured
-5. TypeScript strict mode is enabled and `npm run build` completes with no type errors
-6. Tailwind utility classes render correctly in the browser — verified by adding a test utility class (e.g., `className="text-blue-500"`) to `App.tsx` and confirming it applies in the browser
+1. `npm run dev` starts Vite on :5173 and Fastify on :3000 concurrently with no errors
+2. `src/types.ts` exists with the frontend `Task` interface (`id: string`, `text: string`, `completed: boolean`, `createdAt: string`)
+3. `vite.config.ts` has `base: '/'`, the `@tailwindcss/vite` plugin, and proxy config forwarding `/api/*` to `http://localhost:3000`
+4. `server/index.ts` exists with a Fastify app that registers `@fastify/cors` and serves a `GET /api/health` returning `{ status: "ok" }`
+5. `server/db.ts` exports a singleton Prisma client instance
+6. TypeScript strict mode is enabled and `npm run build` completes with no type errors
+7. Tailwind utility classes render correctly in the browser
 
 ## Tasks / Subtasks
 
-- [x] Task 1: Scaffold project (AC: 1, 4, 5)
-  - [x] Run scaffold command (see Dev Notes — exact command required)
-  - [x] Run `npm install` to install base deps
-  - [x] Install runtime dependencies: `npm install tailwindcss @tailwindcss/vite zustand`
-  - [x] Install dev dependencies: `npm install -D vitest @testing-library/react @testing-library/user-event @testing-library/jest-dom jsdom`
-  - [x] Install E2E dependencies: `npm install -D @playwright/test @axe-core/playwright`
-  - [x] Run `npx playwright install --with-deps`
+- [x] Task 1: Install backend dependencies (AC: 1, 4, 5)
+  - [x] Run `npm install fastify @fastify/cors @fastify/static prisma @prisma/client`
+  - [x] Run `npm install -D concurrently tsx`
+  - [x] Also installed: `@prisma/adapter-pg`, `pg`, `@types/pg`, `dotenv` (required by Prisma 7 adapter pattern)
+  - [x] Verify all deps resolve with no conflicts
 
-- [x] Task 2: Configure vite.config.ts (AC: 4)
-  - [x] Add `base: '/'` to Vite config
-  - [x] Add `@tailwindcss/vite` plugin (see exact config in Dev Notes)
-  - [x] Verify `npm run build` passes with no type errors
+- [x] Task 2: Update src/types.ts for API-backed architecture (AC: 2)
+  - [x] Update `Task` interface: `createdAt` changed from `number` to `string` (ISO 8601)
+  - [x] Updated all test files to use `new Date().toISOString()` instead of `Date.now()`
+  - [x] Remove `src/constants.ts` (STORAGE_KEY no longer needed)
 
-- [x] Task 3: Create src/types.ts (AC: 2)
-  - [x] Create `src/types.ts` with the canonical `Task` interface exactly as specified (see Dev Notes)
-  - [x] No other types in this file at this stage
+- [x] Task 3: Create server/db.ts — Prisma singleton (AC: 5)
+  - [x] Create `server/` directory (with `routes/` subdirectory)
+  - [x] Create `server/db.ts` using Prisma 7 adapter pattern: `PrismaPg` + `PrismaClient({ adapter })`
+  - [x] Never instantiate PrismaClient anywhere else
 
-- [x] Task 4: Create src/constants.ts (AC: 3)
-  - [x] Create `src/constants.ts` with `STORAGE_KEY` export exactly as specified
+- [x] Task 4: Create server/index.ts — Fastify app (AC: 4)
+  - [x] Create `server/index.ts` with Fastify app setup
+  - [x] Register `@fastify/cors` plugin
+  - [x] Register `GET /api/health` route returning `{ status: "ok" }`
+  - [x] In production: register `@fastify/static` to serve `dist/` directory with SPA fallback
+  - [x] Listen on port 3000 (configurable via `PORT` env var)
 
-- [x] Task 5: Enable TypeScript strict mode (AC: 5)
-  - [x] Verify `tsconfig.json` and/or `tsconfig.app.json` has `"strict": true` (Vite react-ts template includes this — verify it is not missing)
-  - [x] Confirm `npm run build` passes with zero errors after creating types.ts and constants.ts
+- [x] Task 5: Configure Vite proxy (AC: 3)
+  - [x] Add `server.proxy` to `vite.config.ts`: forward `/api` to `http://localhost:3000`
+  - [x] Verified `base: '/'` is present
+  - [x] Verified `@tailwindcss/vite` plugin is present
 
-- [x] Task 6: Verify Tailwind rendering (AC: 6)
-  - [x] Add a Tailwind utility class to `App.tsx` (e.g., `<h1 className="text-blue-500">Donezo</h1>`)
-  - [x] Run `npm run dev` and confirm the class applies visually in the browser
-  - [x] Remove or keep as placeholder — do not leave broken markup
+- [x] Task 6: Add concurrent dev script (AC: 1)
+  - [x] Add `"dev:server": "tsx watch server/index.ts"` script to package.json
+  - [x] Update `"dev"` script to use concurrently for Vite + Fastify
+  - [x] Added `"start"` script for production mode
 
-- [x] Task 7: Clean up Vite scaffold boilerplate
-  - [x] Remove Vite default CSS content from `App.css` — replace with Tailwind `@import "tailwindcss"` directive only
-  - [x] Remove Vite default boilerplate from `App.tsx` — replace with a minimal shell (`<main>Donezo</main>`)
-  - [x] Confirm `npm run dev` and `npm run build` still pass
+- [x] Task 7: Verify TypeScript and Tailwind (AC: 6, 7)
+  - [x] Added `server/` and `generated/` to `tsconfig.node.json` include
+  - [x] `npm run build` passes with zero type errors
+  - [x] Initialized Prisma with `npx prisma init` and `npx prisma generate`
 
-### Senior Developer Review (AI)
-
-**Review Date:** 2026-04-02
-**Reviewers:** Blind Hunter, Edge Case Hunter, Acceptance Auditor (claude-opus-4-6, parallel)
-**Outcome:** Changes Requested (1 decision-needed, 1 patch)
-
-#### Action Items
-
-- [x] [Review][Decision] STORAGE_KEY versioning — Keep `donezo_tasks` (matches architecture doc; migration via Zustand persist `version` option in v2 if needed) [src/constants.ts:3]
-- [x] [Review][Patch] Clarify `createdAt` comment — changed "Unix millisecond timestamp" to "milliseconds since epoch" [src/types.ts:8]
-- [x] [Review][Defer] Non-null assertion on `getElementById('root')` [src/main.tsx:6] — deferred, Vite template default; index.html has `<div id="root">`; low practical risk
-- [x] [Review][Defer] `crypto.randomUUID()` secure context requirement [src/types.ts:5] — deferred, Story 2.1 scope when store is implemented
-- [x] [Review][Defer] No test configuration / `npm test` will fail [package.json] — deferred, Story 1.2 scope (Testing Infrastructure)
-- [x] [Review][Defer] No input sanitization / CSP architecture — deferred, Story 1.4 scope (AR-11 security audit)
-- [x] [Review][Defer] `Task.text` trimming constraint unenforced at type level [src/types.ts:6] — deferred, deliberately enforced in store action (Story 2.1)
-- [x] [Review][Defer] No localStorage deserialization validation [src/constants.ts] — deferred, Story 2.1 `onRehydrateStorage` callback scope
-- [x] [Review][Defer] `erasableSyntaxOnly: true` constraint undocumented for contributors [tsconfig.app.json] — deferred, informational; low priority
+- [x] Task 8: Clean up old localStorage artifacts
+  - [x] Removed Zustand `persist` middleware from store (replaced with plain Zustand store)
+  - [x] Removed `src/constants.ts` (STORAGE_KEY)
+  - [x] Removed `localStorage.clear()` from all test beforeEach blocks
+  - [x] Removed localStorage persistence tests from store test file
 
 ## Dev Notes
 
-### CRITICAL: Exact Scaffold Commands
+### Architecture Context
 
-Run these commands **in order** from the parent directory of where the project should live:
+**This is a brownfield story** — the project already exists with a working frontend (Vite + React + TypeScript + Tailwind + Zustand + Vitest + Playwright). This story adds the backend layer.
 
-```bash
-npm create vite@latest donezo -- --template react-ts
-cd donezo
-npm install
-npm install tailwindcss @tailwindcss/vite zustand
-npm install -D vitest @testing-library/react @testing-library/user-event @testing-library/jest-dom jsdom
-npm install -D @playwright/test @axe-core/playwright
-npx playwright install --with-deps
-```
+**Existing project state (from git/package.json):**
+- Vite 8, React 19, Tailwind v4, Zustand 5 — all installed and working
+- Vitest, RTL, Playwright, axe-core — all installed
+- Frontend components exist in `src/components/` (TaskInput, TaskList, TaskItem, ErrorBoundary)
+- Zustand store exists at `src/store/useTaskStore.ts` — currently uses `persist` middleware with localStorage
+- `src/types.ts` has Task interface with `createdAt: number` (needs change to `string`)
+- `src/constants.ts` has `STORAGE_KEY` (needs removal)
 
-**Do NOT use a different template** — `react-ts` is required (React + TypeScript, Vite-native).
+**What this story ADDS:**
+- `fastify`, `@fastify/cors`, `@fastify/static`, `prisma`, `@prisma/client` (runtime deps)
+- `concurrently`, `tsx` (dev deps for running server in dev)
+- `server/index.ts` — Fastify app entry point
+- `server/db.ts` — Prisma client singleton
+- Vite proxy config for `/api/*`
+- Concurrent dev script
 
-### Required: vite.config.ts
+**What this story CHANGES:**
+- `src/types.ts` — `createdAt` from `number` to `string` (ISO 8601)
+- `package.json` — new scripts, new deps
+- `vite.config.ts` — add proxy config
 
-The exact configuration the dev must produce:
+**What this story REMOVES:**
+- `src/constants.ts` (STORAGE_KEY) — no longer needed
+- Any `persist` middleware references in store (will be fully rewritten in Story 3.1)
 
-```ts
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
+### Critical Architecture Rules
 
-export default defineConfig({
-  base: '/',
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
-})
-```
+- **Never import `@prisma/client` in frontend code** (`src/` directory)
+- **Never instantiate `PrismaClient` outside `server/db.ts`**
+- **Frontend uses relative URLs** — `fetch('/api/tasks')`, never hardcoded host/port
+- **Vite proxy** handles dev routing; in production, Fastify serves both API and static files
+- **Fastify 5.8.4** — TypeScript-native, built-in JSON Schema validation
+- **Prisma 7.6.0** — PostgreSQL provider, type-safe queries
+- **`@fastify/cors` 11.2.0** — allow frontend origin
 
-- `base: '/'` is required for Docker/nginx and Vercel/AWS deployment — **never use `/donezo/` or a sub-path**
-- `@tailwindcss/vite` is the Tailwind v4 integration — **no `tailwind.config.js` file is created** (v4 does not need one)
-
-### Required: App.css
-
-Replace all Vite default content with:
-
-```css
-@import "tailwindcss";
-```
-
-That single line is the entire file. No other configuration needed for Tailwind v4.
-
-### Required: src/types.ts
-
-Create this file exactly — it is the **canonical source of truth** for the Task shape. All other files import from here; never redefine it locally.
-
-```ts
-// Identity-agnostic task model.
-// To support multi-user in v2: add `userId: string` field and user context to the store.
-// No structural redesign needed — only additive changes required (FR-10).
-export interface Task {
-  id: string        // crypto.randomUUID() — never sequential integers
-  text: string      // trimmed before storage; never empty string
-  completed: boolean
-  createdAt: number // Date.now() — Unix millisecond timestamp
-}
-```
-
-### Required: src/constants.ts
-
-```ts
-// Single source of truth for the localStorage key.
-// Import STORAGE_KEY from here — never hardcode 'donezo_tasks' anywhere else.
-export const STORAGE_KEY = 'donezo_tasks'
-```
-
-### TypeScript Strict Mode
-
-The `react-ts` Vite template enables `"strict": true` in `tsconfig.app.json` by default. Verify it is present — do **not** remove it. All subsequent stories rely on strict mode being active.
-
-### Anti-Patterns — Do NOT Do These
-
-- ❌ Do not create `tailwind.config.js` — Tailwind v4 does not use one
-- ❌ Do not add `content: [...]` array to any config — not needed with the Vite plugin
-- ❌ Do not use `postcss.config.js` for Tailwind — the `@tailwindcss/vite` plugin replaces PostCSS integration
-- ❌ Do not hardcode `'donezo_tasks'` anywhere — always `import { STORAGE_KEY } from '../constants'`
-- ❌ Do not redefine `interface Task` in any component — always `import { Task } from '../types'`
-- ❌ Do not set `base: '/donezo/'` — deployment target is Docker/nginx + Vercel/AWS, not GitHub Pages
-
-### Tailwind v4 Key Difference from v3
-
-In Tailwind v4:
-- No config file needed
-- Import via CSS: `@import "tailwindcss"` (replaces `@tailwind base/components/utilities` directives)
-- Plugin via `@tailwindcss/vite` in `vite.config.ts`
-- All utility classes work as expected; design tokens auto-generated from usage
-
-### Stack Versions (from architecture)
+### Exact Versions (from architecture)
 
 | Package | Version |
-|---|---|
-| Vite | 8.0.3 (Rolldown-powered) |
-| React | 19 (bundled with react-ts template) |
-| TypeScript | 5.x (bundled with react-ts template) |
-| Tailwind CSS | v4 (via @tailwindcss/vite) |
-| Zustand | 5.x (latest) |
-| Vitest | 3.x (latest) |
-| Playwright | 1.x (latest) |
+|---------|---------|
+| fastify | 5.8.4 |
+| @fastify/cors | 11.2.0 |
+| @fastify/static | latest |
+| prisma | 7.6.0 |
+| @prisma/client | 7.6.0 |
+| concurrently | latest |
+| tsx | latest |
 
-### Project Structure After This Story
-
-This story establishes the root skeleton. Subsequent stories fill in the implementation:
+### File Structure (target state after this story)
 
 ```
-donezo/
-├── package.json
-├── vite.config.ts              ← must have base:'/' + tailwindcss() plugin
-├── tsconfig.json
-├── tsconfig.app.json           ← must have "strict": true
-├── index.html
-├── .gitignore
-└── src/
-    ├── main.tsx                ← untouched (Vite default is fine)
-    ├── App.tsx                 ← minimal shell (boilerplate removed)
-    ├── App.css                 ← @import "tailwindcss" only
-    ├── types.ts                ← CREATED in this story (canonical Task interface)
-    └── constants.ts            ← CREATED in this story (STORAGE_KEY)
+server/
+  index.ts              # Fastify app + health route
+  db.ts                 # Prisma singleton
+src/
+  types.ts              # Updated: createdAt: string
+  (existing frontend files unchanged)
+vite.config.ts          # Updated: proxy config added
+package.json            # Updated: new deps + scripts
 ```
 
-Files NOT created in this story (created in later stories):
-- `src/store/useTaskStore.ts` → Story 2.1
-- `src/components/` → Stories 2.2, 2.3, 2.4, 3.x
-- `Dockerfile`, `nginx.conf`, `docker-compose.yml` → Story 1.3
-- `.github/workflows/deploy.yml` → Story 1.4
-- `e2e/` → Story 1.2
+### Testing Notes
 
-### Testing Notes for This Story
-
-This is the scaffold story — no application tests are written here. The testing infrastructure setup is Story 1.2. However:
-- Confirm `npm run dev` and `npm run build` work without error
-- Confirm Tailwind applies visually (manual browser check)
-- Confirm TypeScript has zero errors on build
-
-### NFR Compliance
-
-- **NFR-05 (Deployability):** `base: '/'` enables ≤5-step deploy to Vercel or AWS with Docker
-- **NFR-04 (Maintainability):** `types.ts` and `constants.ts` are the single sources of truth — prevents inconsistency across all future modules
+- No new tests in this story (infrastructure only)
+- Existing tests should still pass (AC changes to types.ts may require test updates)
+- Verify `npm run build` passes
+- Verify health endpoint manually: `curl http://localhost:3000/api/health`
 
 ### Project Structure Notes
 
-- `src/types.ts` and `src/constants.ts` live directly in `src/` — not in a `src/shared/` subdirectory (no nested structure in v1)
-- Test files are co-located with components — no `__tests__/` directory (enforced in architecture)
-- No barrel `index.ts` files — import directly from source files
+- `server/` directory is a new top-level directory alongside `src/`
+- Backend and frontend are separate directory trees — never import across the boundary
+- Prisma schema will be added in Story 1.2 (NOT this story)
 
 ### References
 
-- Scaffold command: [Source: architecture.md#Implementation Handoff]
-- vite.config.ts pattern: [Source: architecture.md#Starter Template Evaluation]
-- Task interface canonical shape: [Source: architecture.md#Format Patterns]
-- STORAGE_KEY convention: [Source: architecture.md#Format Patterns → localStorage Contract]
-- Anti-patterns: [Source: architecture.md#Enforcement Guidelines]
-- Deployment target (base: '/'): [Source: architecture.md#Infrastructure & Deployment]
-- Project structure: [Source: architecture.md#Project Structure & Boundaries]
-- AR-01 (scaffold requirement): [Source: epics.md#Additional Requirements]
-- AR-10 (types.ts + constants.ts): [Source: epics.md#Additional Requirements]
-- Story 1.1 ACs: [Source: epics.md#Story 1.1: Project Scaffold & Core Configuration]
+- [Source: _bmad-output/planning-artifacts/architecture.md#Backend Architecture]
+- [Source: _bmad-output/planning-artifacts/architecture.md#Infrastructure & Deployment]
+- [Source: _bmad-output/planning-artifacts/architecture.md#Implementation Patterns]
+- [Source: _bmad-output/planning-artifacts/epics.md#Story 1.1]
 
 ## Dev Agent Record
 
 ### Agent Model Used
 
-claude-sonnet-4-6
+Claude Opus 4.6 (1M context)
 
 ### Debug Log References
 
-- Scaffolded via temp dir (`/tmp/donezo-scaffold`) then copied to project root — `npm create vite@latest .` was cancelled due to non-empty directory prompt
-- Vite 9 template (create-vite@9.0.3) used — newer than expected 8.x (actual Vite runtime is 8.0.3 matching architecture spec)
-- Template name was `donezo-scaffold` — corrected to `donezo` in package.json
-- `index.css` cleared of Vite theme variables (would conflict with Tailwind preflight)
+- Prisma 7 requires `@prisma/adapter-pg` + `pg` driver with adapter pattern (not just `@prisma/client`)
+- Prisma 7 requires explicit `output` path in schema generator config
+- Generated Prisma client at `generated/prisma/client.ts` — imported with `.ts` extension for bundler resolution
 
 ### Completion Notes List
 
-- ✅ Project scaffolded with react-ts template, Vite 8.0.3 runtime
-- ✅ All dependencies installed: tailwindcss@4.x, @tailwindcss/vite, zustand@5.x, vitest@4.x, RTL, Playwright, @axe-core/playwright
-- ✅ Playwright browsers downloaded (Chrome, Firefox, WebKit)
-- ✅ vite.config.ts: base:'/' + @tailwindcss/vite plugin configured
-- ✅ src/types.ts: canonical Task interface with FR-10 extensibility comment
-- ✅ src/constants.ts: STORAGE_KEY = 'donezo_tasks'
-- ✅ tsconfig.app.json: "strict": true confirmed present
-- ✅ App.css: @import "tailwindcss" only (Tailwind v4 pattern)
-- ✅ App.tsx: minimal shell with text-blue-500 class confirming Tailwind utility rendering
-- ✅ npm run build: zero TypeScript errors, 17 modules, CSS generated
-- ✅ npm run dev: localhost:5173 responds successfully
+- All 8 tasks completed: backend deps installed, Fastify server created, Prisma singleton configured, Vite proxy added, concurrent dev scripts, TypeScript verified, localStorage artifacts cleaned up
+- Build passes with zero type errors, all 33 existing tests pass
+- Store temporarily simplified (persist middleware removed) — will be fully rewritten to async API actions in Story 3.1
+- Additional packages beyond original spec: `@prisma/adapter-pg`, `pg`, `@types/pg`, `dotenv` (required by Prisma 7)
 
 ### File List
 
-- `package.json` (modified — name corrected to "donezo", all deps added)
-- `vite.config.ts` (modified — base:'/', @tailwindcss/vite plugin added)
-- `src/App.tsx` (modified — Vite boilerplate replaced with minimal Donezo shell)
-- `src/App.css` (modified — Vite defaults replaced with @import "tailwindcss")
-- `src/index.css` (modified — Vite theme variables cleared)
-- `src/types.ts` (created — canonical Task interface)
-- `src/constants.ts` (created — STORAGE_KEY)
-- `node_modules/` (created by npm install — not tracked in git)
-- `dist/` (created by npm run build — not tracked in git)
+- **New:** `server/index.ts` — Fastify app with CORS, health route, static serving
+- **New:** `server/db.ts` — Prisma client singleton with PrismaPg adapter
+- **New:** `prisma/schema.prisma` — Prisma schema (PostgreSQL provider, empty model set)
+- **New:** `prisma.config.ts` — Prisma config file (generated by prisma init)
+- **New:** `.env` — DATABASE_URL placeholder
+- **New:** `generated/prisma/` — Prisma generated client (auto-generated)
+- **Modified:** `src/types.ts` — `createdAt` changed from `number` to `string`
+- **Modified:** `src/store/useTaskStore.ts` — removed persist middleware, uses plain Zustand, ISO timestamps
+- **Modified:** `src/store/useTaskStore.test.ts` — removed localStorage tests, updated createdAt assertion
+- **Modified:** `src/components/TaskItem.test.tsx` — ISO timestamps, removed localStorage.clear
+- **Modified:** `src/components/TaskList.test.tsx` — ISO timestamps, removed localStorage.clear, updated timestamp test
+- **Modified:** `src/components/TaskInput.test.tsx` — removed localStorage.clear
+- **Modified:** `vite.config.ts` — added proxy config for `/api`
+- **Modified:** `tsconfig.node.json` — added `server` and `generated` to include
+- **Modified:** `package.json` — new deps, new scripts (dev, dev:client, dev:server, start)
+- **Deleted:** `src/constants.ts` — STORAGE_KEY no longer needed
+
+### Change Log
+
+- 2026-04-06: Story 1.1 implemented — backend foundation added (Fastify + Prisma + PostgreSQL adapter), frontend updated for API-backed architecture (ISO timestamps, localStorage removed), all tests passing
