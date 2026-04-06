@@ -1,3 +1,4 @@
+import { memo, useMemo } from 'react'
 import type { Task } from '../types'
 import { useTaskStore } from '../store/useTaskStore'
 
@@ -5,11 +6,14 @@ interface TaskItemProps {
   task: Task
 }
 
-export function TaskItem({ task }: TaskItemProps) {
+export const TaskItem = memo(function TaskItem({ task }: TaskItemProps) {
   const toggleTask = useTaskStore((s) => s.toggleTask)
   const deleteTask = useTaskStore((s) => s.deleteTask)
 
-  const formattedDate = new Date(task.createdAt).toLocaleString()
+  const formattedDate = useMemo(
+    () => new Date(task.createdAt).toLocaleString(),
+    [task.createdAt]
+  )
 
   return (
     <li className="flex items-start gap-3 p-4 border-b border-gray-100 sm:items-center">
@@ -39,4 +43,4 @@ export function TaskItem({ task }: TaskItemProps) {
       </button>
     </li>
   )
-}
+})
