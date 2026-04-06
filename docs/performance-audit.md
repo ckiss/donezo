@@ -8,21 +8,47 @@
 
 ## Scores Summary
 
+### Before Fixes
+
 | Category | Desktop | Mobile |
 |----------|---------|--------|
 | Accessibility | 100 | 100 |
 | Best Practices | 100 | 100 |
 | SEO | 82 | 82 |
 
+### After Fixes (P1–P7 applied)
+
+| Category | Desktop | Mobile |
+|----------|---------|--------|
+| Accessibility | 100 | 100 |
+| Best Practices | 100 | 100 |
+| SEO | **100** | **100** |
+
+**0 failed audits** (was 2). All 45 audits pass on both desktop and mobile.
+
 ## Core Web Vitals (Lab)
 
-| Metric | Value | Rating |
-|--------|-------|--------|
-| LCP (Largest Contentful Paint) | 164 ms | Excellent (< 2500 ms) |
-| CLS (Cumulative Layout Shift) | 0.00 | Excellent (< 0.1) |
-| TTFB (Time to First Byte) | 1 ms | Excellent |
+| Metric | Before | After | Rating |
+|--------|--------|-------|--------|
+| LCP (Largest Contentful Paint) | 164 ms | **63 ms** | Excellent (< 2500 ms) |
+| CLS (Cumulative Layout Shift) | 0.00 | 0.00 | Excellent (< 0.1) |
+| TTFB (Time to First Byte) | 1 ms | 1 ms | Excellent |
 
-**LCP element:** `<h1>` heading text — no network resource needed, so LCP is dominated by render delay (99.3%) rather than resource loading. This is expected for a text-only LCP element.
+**LCP element:** `<h1>` heading text — no network resource needed, so LCP is dominated by render delay rather than resource loading. The 62% LCP improvement comes from the production-bundled build reducing render delay.
+
+## Network Profile (Production Build)
+
+| Metric | Dev Server | Production (nginx) |
+|--------|------------|-------------------|
+| Requests | 22 | **4** |
+| JS bundle | unbundled modules | 198.92 KB (63.05 KB gzip) |
+| CSS bundle | unbundled | 16.26 KB (3.93 KB gzip) |
+
+Production HTTP headers confirmed working:
+- `Content-Type: text/html; charset=utf-8` (P2 charset fix)
+- `Cache-Control: max-age=31536000` + `public, immutable` on `/assets/` (P1 cache fix)
+- `Cache-Control: no-cache` on HTML document
+- gzip compression enabled (P3)
 
 ## Memory
 
@@ -36,129 +62,72 @@ Heap is healthy for a React SPA. No detached DOM nodes or signs of memory leaks 
 
 ---
 
-## Issues Found
+## Issues Found & Resolved
 
-### P1 — No Cache Headers on Static Assets (nginx)
+### P1 — No Cache Headers on Static Assets (nginx) ✅ FIXED
 
 **Source:** Performance trace Cache insight
-**Impact:** Repeat visits re-download all JS/CSS instead of serving from browser cache.
+**Impact:** Repeat visits re-downloaded all JS/CSS instead of serving from browser cache.
 
-Vite produces content-hashed filenames (e.g., `index-BrXLEaIJ.js`, `index-B2j9I-d9.css`) that are safe to cache indefinitely. However, the nginx config sets no caching headers at all — both assets show **TTL: 0 seconds**.
-
-**Fix:** Add cache-control headers in `nginx.conf`:
-
-```nginx
-server {
-  listen 80;
-  root /usr/share/nginx/html;
-  index index.html;
-
-  location /assets/ {
-    expires 1y;
-    add_header Cache-Control "public, immutable";
-  }
-
-  location / {
-    add_header Cache-Control "no-cache";
-    try_files $uri $uri/ /index.html;
-  }
-}
-```
+**Fix applied in `nginx.conf`:** Added `expires 1y` and `Cache-Control: public, immutable` for `/assets/` location block.
 
 ---
 
-### P2 — Missing `charset` in HTTP Content-Type Header (nginx)
+### P2 — Missing `charset` in HTTP Content-Type Header (nginx) ✅ FIXED
 
 **Source:** Performance trace CharacterSet insight
-**Impact:** Browser may re-parse the document once it discovers the encoding, delaying first contentful paint.
+**Impact:** Browser could re-parse the document once it discovers the encoding.
 
-The HTML includes `<meta charset="UTF-8">` but nginx does not send `charset=utf-8` in the `Content-Type` response header.
-
-**Fix:** Add charset directive in `nginx.conf`:
-
-```nginx
-charset utf-8;
-```
+**Fix applied in `nginx.conf`:** Added `charset utf-8;` directive.
 
 ---
 
-### P3 — No gzip/Brotli Compression (nginx)
+### P3 — No gzip/Brotli Compression (nginx) ✅ FIXED
 
-**Source:** Network request inspection — no `Content-Encoding` header observed
-**Impact:** Uncompressed JS/CSS transfers are larger than necessary, slowing load on slower connections.
+**Source:** Network request inspection
+**Impact:** Uncompressed JS/CSS transfers were larger than necessary.
 
-**Fix:** Enable gzip in `nginx.conf`:
-
-```nginx
-gzip on;
-gzip_types text/plain text/css application/javascript application/json image/svg+xml;
-gzip_min_length 256;
-```
+**Fix applied in `nginx.conf`:** Added `gzip on` with appropriate types and min-length.
 
 ---
 
-### P4 — Missing Meta Description (SEO)
+### P4 — Missing Meta Description (SEO) ✅ FIXED
 
 **Source:** Lighthouse SEO audit — `meta-description` failed
-**Impact:** Search engines won't have a summary to display in results.
+**Impact:** Search engines had no summary to display in results.
 
-**Fix in `index.html`:**
-
-```html
-<meta name="description" content="A minimal, accessible single-user todo app built with React and TypeScript." />
-```
+**Fix applied in `index.html`:** Added `<meta name="description">` tag.
 
 ---
 
-### P5 — Missing `robots.txt` (SEO)
+### P5 — Missing `robots.txt` (SEO) ✅ FIXED
 
 **Source:** Lighthouse SEO audit — `robots-txt` failed
-**Impact:** Crawlers can't determine indexing rules for the site.
+**Impact:** Crawlers couldn't determine indexing rules for the site.
 
-**Fix:** Create `public/robots.txt`:
-
-```
-User-agent: *
-Allow: /
-```
+**Fix applied:** Created `public/robots.txt` with `Allow: /`.
 
 ---
 
-### P6 — Page Title Is Still Scaffolding Name
+### P6 — Page Title Was Still Scaffolding Name ✅ FIXED
 
 **Source:** Manual review of `index.html`
-**Impact:** Tab title shows "donezo-scaffold" instead of the product name.
+**Impact:** Tab title showed "donezo-scaffold" instead of the product name.
 
-**Fix in `index.html`:** Change `<title>donezo-scaffold</title>` to `<title>Donezo</title>`.
+**Fix applied in `index.html`:** Changed `<title>` to "Donezo".
 
 ---
 
-### P7 — TaskItem Not Memoized (React)
+### P7 — TaskItem Not Memoized (React) ✅ FIXED
 
 **Source:** Code review of `src/components/TaskItem.tsx`
-**Impact:** When any task changes (add/toggle/delete), every `TaskItem` re-renders. With many tasks, this creates unnecessary work.
+**Impact:** When any task changes, every `TaskItem` re-rendered unnecessarily.
 
-Additionally, `new Date(task.createdAt).toLocaleString()` runs on every render without memoization.
-
-**Fix:** Wrap `TaskItem` in `React.memo` and memoize the date string:
-
-```tsx
-import { memo, useMemo } from 'react'
-
-export const TaskItem = memo(function TaskItem({ task }: TaskItemProps) {
-  const toggleTask = useTaskStore((s) => s.toggleTask)
-  const deleteTask = useTaskStore((s) => s.deleteTask)
-  const formattedDate = useMemo(
-    () => new Date(task.createdAt).toLocaleString(),
-    [task.createdAt]
-  )
-  // ...
-})
-```
+**Fix applied:** Wrapped `TaskItem` in `React.memo` and added `useMemo` for date formatting.
 
 ---
 
-### P8 — Render-Blocking CSS (Minor)
+### P8 — Render-Blocking CSS (Minor) — No Action Needed
 
 **Source:** Performance trace RenderBlocking insight
 **Impact:** `index-B2j9I-d9.css` blocks initial render. Total blocking time: 3 ms — negligible for this app size.
@@ -169,11 +138,10 @@ export const TaskItem = memo(function TaskItem({ task }: TaskItemProps) {
 
 ## Summary
 
-The app performs well overall — excellent Core Web Vitals, perfect accessibility, and a clean memory profile. The highest-impact fixes are:
+All fixes (P1–P7) have been applied and verified against the production Docker build (`localhost:3000`):
 
-1. **Add cache headers** (P1) — biggest real-world improvement for returning users
-2. **Add charset header** (P2) — prevents potential re-parsing
-3. **Enable compression** (P3) — smaller transfers
-4. **Fix SEO gaps** (P4, P5, P6) — brings Lighthouse SEO to 100
-
-The React memoization fix (P7) is preventive — it won't matter with a handful of tasks, but will help as the list grows.
+- **Lighthouse:** 100 / 100 / 100 across Accessibility, Best Practices, and SEO (desktop + mobile)
+- **LCP:** Improved from 164 ms → 63 ms (62% faster)
+- **CLS:** 0.00 (unchanged, already perfect)
+- **Network:** 22 dev requests → 4 production requests, with gzip compression and long-lived cache headers
+- **Memory:** 10.3 MB heap — healthy, no leaks
